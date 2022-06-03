@@ -1,122 +1,64 @@
-#include "stm32f10x.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+    // Set the pin to be an output by writing "out" to /sys/class/gpio/gpio24/direction
 
-/*****************************************************************
-Preambule : indiquez ici les periopheriques que vous avez utilisez
-*****************************************************************/
+    fd = open("/sys/class/gpio/gpio24/direction", O_WRONLY);
+    if (fd == -1) {
+        perror("Unable to open /sys/class/gpio/gpio24/direction");
+        exit(1);
+    }
 
-// GPIOA   : broche 6 pour controler la LED verte
-// GPIOC : broche 13 pour detecter l'appui du bouton
+    if (write(fd, "out", 3) != 3) {
+        perror("Error writing to /sys/class/gpio/gpio24/direction");
+        exit(1);
+    }
 
+    close(fd);
 
-/*****************************************************************
-Declaration des fonctions��
-*****************************************************************/
-int rand(void);
-void configure_gpio_pa5(void) ;
-void configure_gpio_pc13(void) ;
-void set_gpio(GPIO_TypeDef *GPIO, int n) ;
-void reset_gpio(GPIO_TypeDef *GPIO, int n) ;
-void configure_timer(TIM_TypeDef *TIM, int psc, int arr) ;
-void configure_it(void) ;
-void start_timer(TIM_TypeDef *TIM) ;
-void stop_timer(TIM_TypeDef *TIM) ;
+    fd = open("/sys/class/gpio/gpio24/value", O_WRONLY);
+    if (fd == -1) {
+        perror("Unable to open /sys/class/gpio/gpio24/value");
+        exit(1);
+    }
 
-/*****************************************************************
-Varibales globales
- *****************************************************************/
+    // Toggle LED 50 ms on, 50ms off, 100 times (10 seconds)
 
-/*****************************************************************
-MAIN
-*****************************************************************/
+    for (int i = 0; i < 100; i++) {
+        if (write(fd, "1", 1) != 1) {
+            perror("Error writing to /sys/class/gpio/gpio24/value");
+            exit(1);
+        }
+        usleep(50000);
 
-int main(void){
-	
-    // Configuration des ports d'entree/sortie
-	configure_gpio_pa5();
-	configure_gpio_pc13();
-    // Ecrire la suite du code
-    
-    // Boucle d'attente du processeur
-	while (1);
-    
-	return 0;
-}
+        if (write(fd, "0", 1) != 1) {
+            perror("Error writing to /sys/class/gpio/gpio24/value");
+            exit(1);
+        }
+        usleep(50000);
+    }
 
-/*****************************************************************
-Corps des fonctions
-*****************************************************************/
+    close(fd);
 
-/**
-Configure la broche 5 du port A (led verte)
-*/
-void configure_gpio_pa5(void){
+    // Unexport the pin by writing to /sys/class/gpio/unexport
 
-}
+    fd = open("/sys/class/gpio/unexport", O_WRONLY);
+    if (fd == -1) {
+        perror("Unable to open /sys/class/gpio/unexport");
+        exit(1);
+    }
 
-/**
-Configure la broche 13 du port C (bouton USER) 
-*/
-void configure_gpio_pc13(void) {
+    if (write(fd, "24", 2) != 2) {
+        perror("Error writing to /sys/class/gpio/unexport");
+        exit(1);
+    }
 
-}
+    close(fd);
 
-/**
-Met a 1 la broche n du port GPIO
-*/
-void set_gpio(GPIO_TypeDef *GPIO, int n) {
-
-}
-
-/**
-Met a 0 la broche n du port GPIO
-*/
-void reset_gpio(GPIO_TypeDef *GPIO, int n) {
-
-}
-
-/**
-Configure la periode du timer TIM en fonction des parametres
-psc (prescaler) et arr (autoreload) sans lancer le timer
-*/
-void configure_timer(TIM_TypeDef *TIM, int psc, int arr) {
-
-}
-
-/**
-Demarre le timer TIM
-*/
-void start_timer(TIM_TypeDef *TIM) {
-
-}
-
-/**
-Arrete le timer TIM
-*/
-void stop_timer(TIM_TypeDef *TIM) {
-
-}
-
-/**
-Configure toutes les interruptions du systeme
-*/
-void configure_it(void) {
-
-}
-
-/*****************************************************************
-Fonctions d'interruption
-*****************************************************************/
-
-
-/*****************************************************************
-Fonctions pre-definies
-*****************************************************************/
-
-/**
-Retourne une valeur entiere aleatoire comprise entre 800 et 1800
-*/
-int rand(){
-	static int randomseed = 0;
-	randomseed = (randomseed * 9301 + 49297) % 233280;
-	return 800 + (randomseed % 1000);
+    // And exit
+    return 0;
 }
